@@ -1,0 +1,1611 @@
+<!DOCTYPE html>
+<html lang="no" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>BXO — Hjemorganisering med AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+<style>
+/* ─── TOKENS ─────────────────────────────────────────────── */
+:root {
+  --bg:       #0a0a0c;
+  --bg2:      #111115;
+  --bg3:      #18181f;
+  --border:   #2a2a35;
+  --border2:  #3a3a48;
+  --text:     #e8e8f0;
+  --text2:    #8888a0;
+  --text3:    #55556a;
+  --accent:   #7c6af7;
+  --accent2:  #a78bfa;
+  --accent3:  #5b4fcf;
+  --green:    #34d399;
+  --red:      #f87171;
+  --yellow:   #fbbf24;
+  --orange:   #fb923c;
+  --radius:   14px;
+  --radius2:  8px;
+  --shadow:   0 4px 24px rgba(0,0,0,.6);
+  --shadow2:  0 2px 8px rgba(0,0,0,.4);
+  --font:     'DM Sans', sans-serif;
+  --font-mono:'DM Mono', monospace;
+  --font-head:'Syne', sans-serif;
+  --transition: .18s cubic-bezier(.4,0,.2,1);
+}
+
+/* ─── RESET ───────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 15px; -webkit-font-smoothing: antialiased; }
+body { background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100dvh; overflow-x: hidden; }
+button { font-family: inherit; cursor: pointer; border: none; background: none; }
+input, textarea, select { font-family: inherit; }
+a { color: inherit; text-decoration: none; }
+img { max-width: 100%; display: block; }
+ul { list-style: none; }
+
+/* ─── SCROLLBAR ───────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 99px; }
+
+/* ─── LAYOUT ──────────────────────────────────────────────── */
+#root { display: flex; flex-direction: column; min-height: 100dvh; }
+
+/* ─── TOPBAR ──────────────────────────────────────────────── */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 20px; height: 58px;
+  background: rgba(10,10,12,.85);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 100;
+}
+.topbar-logo {
+  font-family: var(--font-head); font-size: 1.5rem; font-weight: 800;
+  letter-spacing: -.03em; color: var(--accent2);
+  display: flex; align-items: center; gap: 6px;
+}
+.topbar-logo span { color: var(--text3); font-size: .7rem; font-weight: 400; font-family: var(--font-mono); }
+.topbar-actions { display: flex; align-items: center; gap: 10px; }
+
+/* ─── BOTTOM NAV ──────────────────────────────────────────── */
+.bottom-nav {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+  display: flex; background: rgba(10,10,12,.92);
+  backdrop-filter: blur(20px);
+  border-top: 1px solid var(--border);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.bottom-nav-item {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 3px; padding: 10px 4px 8px;
+  color: var(--text3); font-size: .62rem; font-family: var(--font-mono);
+  letter-spacing: .02em; transition: color var(--transition);
+  cursor: pointer; user-select: none;
+}
+.bottom-nav-item.active { color: var(--accent2); }
+.bottom-nav-item svg { width: 22px; height: 22px; stroke-width: 1.8; }
+.nav-dot { width: 4px; height: 4px; border-radius: 99px; background: var(--accent); opacity: 0; transition: opacity var(--transition); }
+.bottom-nav-item.active .nav-dot { opacity: 1; }
+
+/* ─── MAIN CONTENT ────────────────────────────────────────── */
+.main { flex: 1; padding: 20px 16px 90px; max-width: 640px; margin: 0 auto; width: 100%; }
+
+/* ─── CARDS ───────────────────────────────────────────────── */
+.card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px;
+  transition: border-color var(--transition);
+}
+.card:hover { border-color: var(--border2); }
+.card-title { font-family: var(--font-head); font-weight: 700; font-size: 1rem; letter-spacing: -.02em; }
+.card-sub { color: var(--text2); font-size: .82rem; margin-top: 3px; }
+
+/* ─── BUTTONS ─────────────────────────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  padding: 10px 18px; border-radius: var(--radius2); font-size: .88rem;
+  font-weight: 500; transition: all var(--transition); white-space: nowrap;
+}
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--accent2); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(124,106,247,.35); }
+.btn-secondary { background: var(--bg3); color: var(--text); border: 1px solid var(--border); }
+.btn-secondary:hover { border-color: var(--border2); background: var(--border); }
+.btn-ghost { color: var(--text2); padding: 8px 12px; }
+.btn-ghost:hover { color: var(--text); background: var(--bg3); border-radius: var(--radius2); }
+.btn-danger { background: rgba(248,113,113,.12); color: var(--red); border: 1px solid rgba(248,113,113,.2); }
+.btn-danger:hover { background: rgba(248,113,113,.2); }
+.btn-green { background: rgba(52,211,153,.12); color: var(--green); border: 1px solid rgba(52,211,153,.2); }
+.btn-green:hover { background: rgba(52,211,153,.22); }
+.btn-sm { padding: 6px 12px; font-size: .8rem; }
+.btn-lg { padding: 14px 28px; font-size: 1rem; }
+.btn-full { width: 100%; }
+.btn:disabled { opacity: .45; cursor: not-allowed; transform: none !important; }
+.btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+/* ─── INPUTS ──────────────────────────────────────────────── */
+.field { display: flex; flex-direction: column; gap: 6px; }
+.label { font-size: .8rem; color: var(--text2); font-family: var(--font-mono); letter-spacing: .03em; }
+.input, .textarea, .select {
+  background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius2);
+  color: var(--text); padding: 10px 14px; font-size: .9rem; outline: none;
+  transition: border-color var(--transition);
+  width: 100%;
+}
+.input:focus, .textarea:focus, .select:focus { border-color: var(--accent); }
+.input::placeholder, .textarea::placeholder { color: var(--text3); }
+.textarea { min-height: 80px; resize: vertical; line-height: 1.5; }
+.select { appearance: none; cursor: pointer; }
+
+/* ─── BADGES ──────────────────────────────────────────────── */
+.badge {
+  display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px;
+  border-radius: 99px; font-size: .72rem; font-family: var(--font-mono);
+  font-weight: 500; letter-spacing: .04em; white-space: nowrap;
+}
+.badge-purple { background: rgba(124,106,247,.15); color: var(--accent2); border: 1px solid rgba(124,106,247,.2); }
+.badge-green  { background: rgba(52,211,153,.12); color: var(--green); border: 1px solid rgba(52,211,153,.18); }
+.badge-yellow { background: rgba(251,191,36,.12); color: var(--yellow); border: 1px solid rgba(251,191,36,.18); }
+.badge-red    { background: rgba(248,113,113,.12); color: var(--red); border: 1px solid rgba(248,113,113,.18); }
+.badge-gray   { background: var(--bg3); color: var(--text2); border: 1px solid var(--border); }
+
+/* ─── DIVIDER ─────────────────────────────────────────────── */
+.divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+
+/* ─── MODAL ───────────────────────────────────────────────── */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(0,0,0,.7); backdrop-filter: blur(8px);
+  display: flex; align-items: flex-end; justify-content: center;
+  padding: 16px;
+  animation: fadeIn .15s ease;
+}
+@media (min-width: 480px) { .modal-overlay { align-items: center; } }
+.modal {
+  background: var(--bg2); border: 1px solid var(--border2);
+  border-radius: var(--radius); width: 100%; max-width: 520px;
+  max-height: 90dvh; overflow-y: auto;
+  animation: slideUp .2s cubic-bezier(.4,0,.2,1);
+}
+.modal-header { padding: 18px 18px 0; display: flex; align-items: center; justify-content: space-between; }
+.modal-title { font-family: var(--font-head); font-size: 1.1rem; font-weight: 700; }
+.modal-body { padding: 16px 18px 20px; display: flex; flex-direction: column; gap: 14px; }
+.modal-close { width: 30px; height: 30px; border-radius: 99px; display: flex; align-items: center; justify-content: center; color: var(--text2); background: var(--bg3); transition: all var(--transition); }
+.modal-close:hover { color: var(--text); background: var(--border); }
+
+/* ─── TOAST ───────────────────────────────────────────────── */
+.toast-container { position: fixed; top: 70px; right: 16px; z-index: 300; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+.toast {
+  background: var(--bg3); border: 1px solid var(--border2);
+  border-radius: var(--radius2); padding: 12px 16px;
+  font-size: .85rem; color: var(--text);
+  box-shadow: var(--shadow); pointer-events: all;
+  display: flex; align-items: center; gap: 10px;
+  animation: slideLeft .2s ease; min-width: 220px; max-width: 320px;
+}
+.toast.success { border-color: rgba(52,211,153,.3); }
+.toast.error   { border-color: rgba(248,113,113,.3); }
+.toast-dot { width: 8px; height: 8px; border-radius: 99px; flex-shrink: 0; }
+.toast.success .toast-dot { background: var(--green); }
+.toast.error   .toast-dot { background: var(--red); }
+.toast.info    .toast-dot { background: var(--accent2); }
+
+/* ─── AI TYPING ───────────────────────────────────────────── */
+.ai-typing { display: flex; gap: 5px; align-items: center; padding: 10px 0; }
+.ai-typing span {
+  width: 7px; height: 7px; border-radius: 99px; background: var(--accent2);
+  animation: bounce 1.2s infinite;
+}
+.ai-typing span:nth-child(2) { animation-delay: .2s; }
+.ai-typing span:nth-child(3) { animation-delay: .4s; }
+
+/* ─── SECTION HEADER ──────────────────────────────────────── */
+.section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.section-title { font-family: var(--font-head); font-size: 1.3rem; font-weight: 800; letter-spacing: -.03em; }
+
+/* ─── BOX LIST ────────────────────────────────────────────── */
+.box-grid { display: flex; flex-direction: column; gap: 10px; }
+.box-card {
+  display: flex; gap: 12px; background: var(--bg2);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 14px; cursor: pointer; transition: all var(--transition);
+  position: relative; overflow: hidden;
+}
+.box-card::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+  width: 3px; background: var(--accent); opacity: 0; transition: opacity var(--transition);
+  border-radius: 3px 0 0 3px;
+}
+.box-card:hover { border-color: var(--border2); transform: translateX(2px); }
+.box-card:hover::before { opacity: 1; }
+.box-thumb {
+  width: 54px; height: 54px; border-radius: var(--radius2);
+  background: var(--bg3); border: 1px solid var(--border);
+  overflow: hidden; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+  color: var(--text3); font-size: 1.4rem;
+}
+.box-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.box-info { flex: 1; min-width: 0; }
+.box-name { font-weight: 600; font-size: .95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.box-meta { color: var(--text2); font-size: .78rem; margin-top: 3px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.box-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.icon-btn { width: 32px; height: 32px; border-radius: var(--radius2); display: flex; align-items: center; justify-content: center; color: var(--text2); transition: all var(--transition); }
+.icon-btn:hover { color: var(--text); background: var(--bg3); }
+.icon-btn svg { width: 16px; height: 16px; }
+
+/* ─── CHAT ────────────────────────────────────────────────── */
+.chat-wrap { display: flex; flex-direction: column; height: calc(100dvh - 160px); }
+.chat-messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; padding-bottom: 12px; }
+.msg { display: flex; gap: 10px; align-items: flex-start; }
+.msg.user { flex-direction: row-reverse; }
+.msg-avatar {
+  width: 30px; height: 30px; border-radius: 99px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: .75rem; font-weight: 700;
+  background: var(--bg3); border: 1px solid var(--border);
+}
+.msg.ai .msg-avatar { background: rgba(124,106,247,.15); border-color: rgba(124,106,247,.2); color: var(--accent2); }
+.msg.user .msg-avatar { background: rgba(52,211,153,.1); color: var(--green); border-color: rgba(52,211,153,.2); }
+.msg-bubble {
+  max-width: 80%; padding: 10px 14px; border-radius: 14px;
+  font-size: .88rem; line-height: 1.55;
+}
+.msg.ai .msg-bubble { background: var(--bg3); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
+.msg.user .msg-bubble { background: rgba(124,106,247,.18); border: 1px solid rgba(124,106,247,.25); border-bottom-right-radius: 4px; color: var(--text); }
+.chat-input-row { display: flex; gap: 8px; padding-top: 12px; border-top: 1px solid var(--border); }
+.chat-input { flex: 1; }
+
+/* ─── SCAN ZONE ───────────────────────────────────────────── */
+.scan-zone {
+  border: 2px dashed var(--border2); border-radius: var(--radius);
+  padding: 32px 20px; text-align: center; cursor: pointer;
+  transition: all var(--transition); position: relative; overflow: hidden;
+}
+.scan-zone:hover { border-color: var(--accent); background: rgba(124,106,247,.04); }
+.scan-zone.dragging { border-color: var(--accent2); background: rgba(124,106,247,.08); }
+.scan-zone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+.scan-icon { font-size: 2.5rem; margin-bottom: 10px; }
+
+/* ─── LABEL PREVIEW ───────────────────────────────────────── */
+.label-preview {
+  background: #fff; color: #000; border-radius: var(--radius2);
+  padding: 16px; font-family: var(--font-mono); position: relative;
+  min-height: 120px;
+}
+.label-preview.dark-lbl { background: #111; color: #fff; }
+
+/* ─── ONBOARDING ──────────────────────────────────────────── */
+.onboarding-wrap { min-height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; background: var(--bg); }
+.onboard-step { width: 100%; max-width: 420px; text-align: center; animation: fadeIn .3s ease; }
+.onboard-logo { font-family: var(--font-head); font-size: 3.5rem; font-weight: 800; letter-spacing: -.05em; color: var(--accent2); margin-bottom: 6px; }
+.onboard-tagline { color: var(--text2); font-size: .92rem; margin-bottom: 32px; }
+.onboard-steps-dots { display: flex; gap: 6px; justify-content: center; margin-top: 28px; }
+.onboard-dot { width: 6px; height: 6px; border-radius: 99px; background: var(--border2); transition: all var(--transition); }
+.onboard-dot.active { background: var(--accent2); width: 20px; }
+
+/* ─── AUTH ────────────────────────────────────────────────── */
+.auth-wrap { min-height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; }
+.auth-card { width: 100%; max-width: 380px; }
+.auth-logo { font-family: var(--font-head); font-size: 2.4rem; font-weight: 800; letter-spacing: -.05em; color: var(--accent2); text-align: center; margin-bottom: 6px; }
+.auth-sub { text-align: center; color: var(--text2); font-size: .88rem; margin-bottom: 28px; }
+.divider-text { display: flex; align-items: center; gap: 10px; color: var(--text3); font-size: .78rem; margin: 16px 0; }
+.divider-text::before, .divider-text::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+/* ─── PROFILE ─────────────────────────────────────────────── */
+.profile-avatar-wrap { display: flex; justify-content: center; margin-bottom: 20px; }
+.profile-avatar {
+  width: 80px; height: 80px; border-radius: 99px;
+  background: rgba(124,106,247,.15); border: 2px solid rgba(124,106,247,.3);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-head); font-size: 2rem; font-weight: 700; color: var(--accent2);
+  overflow: hidden;
+}
+.profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+/* ─── STATS ROW ───────────────────────────────────────────── */
+.stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+.stat-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius2); padding: 14px 10px; text-align: center; }
+.stat-val { font-family: var(--font-head); font-size: 1.5rem; font-weight: 800; color: var(--accent2); }
+.stat-lbl { font-size: .72rem; color: var(--text3); font-family: var(--font-mono); letter-spacing: .04em; margin-top: 2px; }
+
+/* ─── ANIMATIONS ──────────────────────────────────────────── */
+@keyframes fadeIn  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+@keyframes slideLeft { from { transform: translateX(30px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+@keyframes bounce  { 0%,80%,100% { transform: translateY(0); } 40% { transform: translateY(-6px); } }
+@keyframes spin    { to { transform: rotate(360deg); } }
+.spin { animation: spin .8s linear infinite; }
+
+/* ─── MISC UTILS ──────────────────────────────────────────── */
+.flex { display: flex; } .flex-col { flex-direction: column; }
+.items-center { align-items: center; } .justify-between { justify-content: space-between; }
+.gap-2 { gap: 8px; } .gap-3 { gap: 12px; } .gap-4 { gap: 16px; }
+.mt-2 { margin-top: 8px; } .mt-3 { margin-top: 12px; } .mt-4 { margin-top: 16px; }
+.mb-3 { margin-bottom: 12px; } .mb-4 { margin-bottom: 16px; }
+.text-sm { font-size: .82rem; } .text-xs { font-size: .74rem; }
+.text-muted { color: var(--text2); } .text-center { text-align: center; }
+.font-mono { font-family: var(--font-mono); }
+.w-full { width: 100%; }
+.hidden { display: none; }
+.rounded { border-radius: var(--radius2); }
+.p-3 { padding: 12px; } .p-4 { padding: 16px; }
+.loading-bar { height: 3px; background: linear-gradient(90deg, var(--accent), var(--accent2), var(--accent)); background-size: 200% 100%; animation: loadingBar 1.5s linear infinite; border-radius: 99px; }
+@keyframes loadingBar { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+.ai-result-box { background: rgba(124,106,247,.06); border: 1px solid rgba(124,106,247,.18); border-radius: var(--radius2); padding: 14px; font-size: .88rem; line-height: 1.6; }
+.share-link-box { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius2); padding: 10px 14px; font-family: var(--font-mono); font-size: .78rem; color: var(--accent2); word-break: break-all; }
+
+/* ─── ITEMS LIST ──────────────────────────────────────────── */
+.items-list { display: flex; flex-direction: column; gap: 8px; }
+.item-row {
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+  background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius2);
+  transition: border-color var(--transition);
+}
+.item-row:hover { border-color: var(--border2); }
+.item-name { flex: 1; font-size: .88rem; }
+.item-qty { font-family: var(--font-mono); font-size: .8rem; color: var(--text2); }
+
+/* ─── SELL/DONATE RESULTS ─────────────────────────────────── */
+.platform-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.platform-card { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius2); padding: 12px; cursor: pointer; transition: all var(--transition); text-align: center; }
+.platform-card:hover { border-color: var(--accent); }
+.platform-icon { font-size: 1.4rem; margin-bottom: 4px; }
+.platform-name { font-size: .8rem; font-weight: 600; }
+.platform-price { font-family: var(--font-mono); font-size: .75rem; color: var(--green); margin-top: 2px; }
+
+/* ─── TOGGLE ──────────────────────────────────────────────── */
+.toggle { position: relative; display: inline-block; width: 44px; height: 24px; }
+.toggle input { opacity: 0; width: 0; height: 0; }
+.toggle-slider { position: absolute; cursor: pointer; inset: 0; background: var(--bg3); border: 1px solid var(--border); border-radius: 99px; transition: all var(--transition); }
+.toggle-slider::before { content: ''; position: absolute; height: 16px; width: 16px; left: 3px; bottom: 3px; background: var(--text3); border-radius: 99px; transition: all var(--transition); }
+.toggle input:checked + .toggle-slider { background: rgba(124,106,247,.3); border-color: var(--accent); }
+.toggle input:checked + .toggle-slider::before { transform: translateX(20px); background: var(--accent2); }
+
+/* ─── PRINT LABEL ─────────────────────────────────────────── */
+@media print {
+  body * { visibility: hidden; }
+  .print-area, .print-area * { visibility: visible; }
+  .print-area { position: fixed; left: 0; top: 0; width: 100%; }
+}
+
+/* ─── EMPTY STATE ─────────────────────────────────────────── */
+.empty-state { text-align: center; padding: 48px 20px; color: var(--text3); }
+.empty-state-icon { font-size: 2.8rem; margin-bottom: 12px; opacity: .5; }
+.empty-state-title { font-family: var(--font-head); font-size: 1rem; font-weight: 700; color: var(--text2); margin-bottom: 6px; }
+.empty-state-desc { font-size: .83rem; line-height: 1.55; }
+
+/* ─── BREADCRUMB ──────────────────────────────────────────── */
+.breadcrumb { display: flex; align-items: center; gap: 6px; font-size: .78rem; color: var(--text3); margin-bottom: 16px; font-family: var(--font-mono); }
+.breadcrumb a, .breadcrumb span { cursor: pointer; }
+.breadcrumb a:hover { color: var(--text2); }
+.breadcrumb-sep { color: var(--text3); }
+
+/* ─── PROGRESS ────────────────────────────────────────────── */
+.progress-bar { height: 6px; background: var(--bg3); border-radius: 99px; overflow: hidden; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 99px; transition: width .4s ease; }
+
+/* ─── FOOTER ──────────────────────────────────────────────── */
+.footer-copy { text-align: center; font-size: .72rem; color: var(--text3); font-family: var(--font-mono); padding: 20px 0; }
+
+/* ─── FINN DRAFT ──────────────────────────────────────────── */
+.finn-draft { border: 1px solid var(--border2); border-radius: var(--radius); overflow: hidden; }
+.finn-header { background: #06befb; padding: 10px 14px; font-weight: 700; font-size: .9rem; color: #000; font-family: var(--font-head); }
+.finn-body { padding: 14px; background: var(--bg2); }
+.finn-price { font-family: var(--font-mono); font-size: 1.2rem; color: var(--green); font-weight: 700; }
+.finn-title { font-size: 1rem; font-weight: 600; margin-bottom: 6px; }
+.finn-desc { font-size: .84rem; color: var(--text2); line-height: 1.55; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<!-- Firebase compat SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<!-- React 18 UMD -->
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<!-- htm -->
+<script src="https://unpkg.com/htm@3.1.1/dist/htm.js"></script>
+
+<script>
+// ─── HTM + REACT SETUP ────────────────────────────────────────────────────────
+const html = htm.bind(React.createElement);
+const { useState, useEffect, useRef, useCallback, useReducer } = React;
+
+// ─── FIREBASE INIT ────────────────────────────────────────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyBpejGMB5yNJD5ZJpv6yLHsWwEdaFL-OqM",
+  authDomain: "boxo-94e7e.firebaseapp.com",
+  databaseURL: "https://boxo-94e7e-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "boxo-94e7e",
+  storageBucket: "boxo-94e7e.appspot.com",
+  messagingSenderId: "placeholder",
+  appId: "placeholder"
+};
+const app  = firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db   = firebase.database();
+const googleProvider = new firebase.auth.GoogleAuthProvider();
+
+// ─── ANTHROPIC API ────────────────────────────────────────────────────────────
+const CLAUDE_MODEL = "claude-sonnet-4-20250514";
+async function callClaude(messages, systemPrompt, maxTokens = 1000) {
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: CLAUDE_MODEL,
+      max_tokens: maxTokens,
+      system: systemPrompt || "Du er BXO, en AI-assistent for hjemorganisering. Svar alltid på norsk med mindre brukeren spør på et annet språk. Vær hjelpsom, konkret og kortfattet.",
+      messages
+    })
+  });
+  if (!res.ok) throw new Error(`API ${res.status}`);
+  const data = await res.json();
+  return data.content.map(b => b.text || "").filter(Boolean).join("\n");
+}
+
+async function callClaudeWithImage(base64Image, mimeType, prompt, systemPrompt) {
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: CLAUDE_MODEL,
+      max_tokens: 1200,
+      system: systemPrompt || "Du er BXO, en AI-assistent for hjemorganisering. Svar alltid på norsk.",
+      messages: [{
+        role: "user",
+        content: [
+          { type: "image", source: { type: "base64", media_type: mimeType, data: base64Image } },
+          { type: "text", text: prompt }
+        ]
+      }]
+    })
+  });
+  if (!res.ok) throw new Error(`API ${res.status}`);
+  const data = await res.json();
+  return data.content.map(b => b.text || "").filter(Boolean).join("\n");
+}
+
+function fileToBase64(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result.split(",")[1]);
+    r.onerror = () => rej(new Error("Lesing mislyktes"));
+    r.readAsDataURL(file);
+  });
+}
+
+// ─── UNIQUE ID ────────────────────────────────────────────────────────────────
+const uid = () => Math.random().toString(36).slice(2, 10);
+
+// ─── ICONS (inline SVG via htm) ───────────────────────────────────────────────
+const Icon = ({ name, size = 20, ...props }) => {
+  const paths = {
+    boxes:    html`<rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/>`,
+    scan:     html`<path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="7" y1="12" x2="17" y2="12"/>`,
+    chat:     html`<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>`,
+    label:    html`<path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/>`,
+    user:     html`<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>`,
+    plus:     html`<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>`,
+    trash:    html`<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>`,
+    edit:     html`<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>`,
+    share:    html`<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>`,
+    eye:      html`<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>`,
+    x:        html`<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>`,
+    check:    html`<polyline points="20 6 9 17 4 12"/>`,
+    send:     html`<line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>`,
+    printer:  html`<polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>`,
+    copy:     html`<rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>`,
+    image:    html`<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>`,
+    sell:     html`<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>`,
+    pack:     html`<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>`,
+    home:     html`<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>`,
+    logout:   html`<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>`,
+    google:   html`<path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>`,
+    arrow_r:  html`<line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>`,
+    arrow_l:  html`<line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>`,
+    sparkle:  html`<path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5z"/><path d="M19 3l.75 2.25L22 6l-2.25.75L19 9l-.75-2.25L16 6l2.25-.75z"/>`,
+    camera:   html`<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>`,
+  };
+  return html`
+    <svg xmlns="http://www.w3.org/2000/svg" width=${size} height=${size} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" ...${{ ...props }}>
+      ${paths[name] || html`<circle cx="12" cy="12" r="10"/>`}
+    </svg>`;
+};
+// ──────────────────────────────────────────────────────────────── Icon (end) ──
+
+// ─── TOAST CONTEXT ───────────────────────────────────────────────────────────
+const ToastContext = React.createContext(null);
+function ToastProvider({ children }) {
+  const [toasts, setToasts] = useState([]);
+  const toast = useCallback((msg, type = "info") => {
+    const id = uid();
+    setToasts(t => [...t, { id, msg, type }]);
+    setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), 3200);
+  }, []);
+  return html`
+    <${ToastContext.Provider} value=${toast}>
+      ${children}
+      <div class="toast-container">
+        ${toasts.map(t => html`
+          <div key=${t.id} class=${"toast " + t.type}>
+            <div class="toast-dot"></div>
+            <span>${t.msg}</span>
+          </div>`
+        )}
+      </div>
+    </${ToastContext.Provider}>`;
+}
+const useToast = () => React.useContext(ToastContext);
+// ──────────────────────────────────────────────────────────── ToastProvider ──
+
+// ─── MODAL WRAPPER ────────────────────────────────────────────────────────────
+function Modal({ title, onClose, children }) {
+  useEffect(() => {
+    const handler = e => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [onClose]);
+  return html`
+    <div class="modal-overlay" onClick=${e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div class="modal">
+        <div class="modal-header">
+          <span class="modal-title">${title}</span>
+          <button class="modal-close" onClick=${onClose}><${Icon} name="x" size=${14}/></button>
+        </div>
+        <div class="modal-body">${children}</div>
+      </div>
+    </div>`;
+}
+// ──────────────────────────────────────────────────────────────────── Modal ──
+
+// ─── ONBOARDING ───────────────────────────────────────────────────────────────
+const ONBOARD_STEPS = [
+  {
+    icon: "📦",
+    title: "Velkommen til BXO",
+    desc: "Den smarte hjemorganiseringsappen drevet av AI. Organiser, skann og håndter alt du eier.",
+  },
+  {
+    icon: "🤖",
+    title: "AI-drevet innsikt",
+    desc: "Skann esker med kamera, få pakkeforslag, selg/kast-anbefalinger og mer — alt med Claude AI.",
+  },
+  {
+    icon: "🏷️",
+    title: "Etiketter & deling",
+    desc: "Skriv ut profesjonelle etiketter og del eskeoversikter med familie eller kollegaer.",
+  },
+];
+
+function Onboarding({ onDone }) {
+  const [step, setStep] = useState(0);
+  const s = ONBOARD_STEPS[step];
+  const isLast = step === ONBOARD_STEPS.length - 1;
+  return html`
+    <div class="onboarding-wrap">
+      <div class="onboard-step">
+        <div class="onboard-logo">BXO</div>
+        <p class="onboard-tagline">AI-drevet hjemorganisering</p>
+        <div style="font-size:4rem;margin-bottom:16px">${s.icon}</div>
+        <h2 style="font-family:var(--font-head);font-size:1.5rem;font-weight:800;letter-spacing:-.03em;margin-bottom:10px">${s.title}</h2>
+        <p style="color:var(--text2);font-size:.93rem;line-height:1.6;max-width:320px;margin:0 auto">${s.desc}</p>
+        <div class="onboard-steps-dots">
+          ${ONBOARD_STEPS.map((_, i) => html`<div key=${i} class=${"onboard-dot" + (i === step ? " active" : "")}></div>`)}
+        </div>
+        <div style="margin-top:32px">
+          <button class="btn btn-primary btn-lg btn-full" onClick=${() => isLast ? onDone() : setStep(s => s + 1)}>
+            ${isLast ? "Kom i gang" : "Neste"}
+            <${Icon} name="arrow_r" size=${16}/>
+          </button>
+          ${step > 0 && html`
+            <button class="btn btn-ghost btn-full mt-2" style="margin-top:10px" onClick=${() => setStep(s => s - 1)}>Tilbake</button>
+          `}
+        </div>
+      </div>
+    </div>`;
+}
+// ───────────────────────────────────────────────────────────────── Onboarding ──
+
+// ─── AUTH SCREEN ──────────────────────────────────────────────────────────────
+function AuthScreen({ onAuth }) {
+  const toast = useToast();
+  const [mode, setMode] = useState("login"); // login | register
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleGoogle = async () => {
+    setLoading(true);
+    try {
+      await auth.signInWithPopup(googleProvider);
+    } catch (e) {
+      toast("Google-innlogging mislyktes: " + e.message, "error");
+    }
+    setLoading(false);
+  };
+
+  const handleEmail = async () => {
+    if (!email || !password) { toast("Fyll inn e-post og passord", "error"); return; }
+    setLoading(true);
+    try {
+      if (mode === "register") {
+        const cred = await auth.createUserWithEmailAndPassword(email, password);
+        if (name) await cred.user.updateProfile({ displayName: name });
+      } else {
+        await auth.signInWithEmailAndPassword(email, password);
+      }
+    } catch (e) {
+      toast(e.message, "error");
+    }
+    setLoading(false);
+  };
+
+  return html`
+    <div class="auth-wrap">
+      <div class="auth-card">
+        <div class="auth-logo">BXO</div>
+        <p class="auth-sub">${mode === "login" ? "Logg inn for å fortsette" : "Opprett en konto"}</p>
+        <div class="flex flex-col gap-3">
+          ${mode === "register" && html`
+            <div class="field">
+              <label class="label">NAVN</label>
+              <input class="input" placeholder="Ditt navn" value=${name} onInput=${e => setName(e.target.value)} />
+            </div>`}
+          <div class="field">
+            <label class="label">E-POST</label>
+            <input class="input" type="email" placeholder="din@epost.no" value=${email} onInput=${e => setEmail(e.target.value)} />
+          </div>
+          <div class="field">
+            <label class="label">PASSORD</label>
+            <input class="input" type="password" placeholder="••••••••" value=${password} onInput=${e => setPassword(e.target.value)}
+              onKeyDown=${e => e.key === "Enter" && handleEmail()} />
+          </div>
+          <button class="btn btn-primary btn-lg btn-full" onClick=${handleEmail} disabled=${loading}>
+            ${loading ? "Laster..." : (mode === "login" ? "Logg inn" : "Registrer")}
+          </button>
+          <div class="divider-text">eller</div>
+          <button class="btn btn-secondary btn-full" onClick=${handleGoogle} disabled=${loading} style="gap:10px">
+            <svg width="18" height="18" viewBox="0 0 24 24">
+              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+            </svg>
+            Fortsett med Google
+          </button>
+        </div>
+        <p class="text-center text-sm text-muted mt-4" style="margin-top:20px;cursor:pointer" onClick=${() => setMode(m => m === "login" ? "register" : "login")}>
+          ${mode === "login" ? "Ingen konto? Registrer deg" : "Har allerede konto? Logg inn"}
+        </p>
+        <p class="footer-copy">© 2025 BXO · Kenneth Horgen Hansen</p>
+      </div>
+    </div>`;
+}
+// ─────────────────────────────────────────────────────────────────── AuthScreen ──
+
+// ─── BOX DETAIL VIEW ──────────────────────────────────────────────────────────
+function BoxDetail({ box, userId, onBack, toast }) {
+  const [box2, setBox2] = useState(box);
+  const [tab, setTab] = useState("items"); // items | scan | sell | pack | share
+  const [items, setItems] = useState(box.items || []);
+  const [newItem, setNewItem] = useState("");
+  const [newQty, setNewQty] = useState("1");
+
+  // AI states
+  const [scanImg, setScanImg] = useState(null);
+  const [scanFile, setScanFile] = useState(null);
+  const [scanLoading, setScanLoading] = useState(false);
+  const [scanResult, setScanResult] = useState("");
+  const [sellLoading, setSellLoading] = useState(false);
+  const [sellResult, setSellResult] = useState(null);
+  const [packImgs, setPackImgs] = useState([]);
+  const [packLoading, setPackLoading] = useState(false);
+  const [packResult, setPackResult] = useState("");
+  const [shareUrl, setShareUrl] = useState("");
+
+  // Sync items to Firebase
+  useEffect(() => {
+    const ref = db.ref(`users/${userId}/boxes/${box.id}/items`);
+    const unsub = ref.on("value", snap => {
+      const val = snap.val();
+      setItems(val ? Object.entries(val).map(([k, v]) => ({ ...v, id: k })) : []);
+    });
+    return () => ref.off("value", unsub);
+  }, [userId, box.id]);
+
+  const addItem = async () => {
+    if (!newItem.trim()) return;
+    const ref = db.ref(`users/${userId}/boxes/${box.id}/items`).push();
+    await ref.set({ name: newItem.trim(), qty: parseInt(newQty) || 1, addedAt: Date.now() });
+    setNewItem(""); setNewQty("1");
+    toast("Gjenstand lagt til", "success");
+  };
+
+  const removeItem = async (itemId) => {
+    await db.ref(`users/${userId}/boxes/${box.id}/items/${itemId}`).remove();
+    toast("Gjenstand fjernet", "success");
+  };
+
+  // AI: Scan image
+  const handleScanFile = async (file) => {
+    if (!file) return;
+    setScanFile(file);
+    const b64 = await fileToBase64(file);
+    setScanImg("data:" + file.type + ";base64," + b64);
+    setScanLoading(true);
+    setScanResult("");
+    try {
+      const result = await callClaudeWithImage(b64, file.type,
+        "Analyser dette bildet og list opp alle gjenstander du kan se. Formater som en enkel liste med navn og omtrentlig antall. Vær konkret.",
+        "Du er BXO, en AI for hjemorganisering. Svar på norsk."
+      );
+      setScanResult(result);
+      toast("Bildeskanningsfullført!", "success");
+    } catch (e) {
+      toast("Skanningsfeil: " + e.message, "error");
+    }
+    setScanLoading(false);
+  };
+
+  const importScanItems = async () => {
+    if (!scanResult) return;
+    const lines = scanResult.split("\n").filter(l => l.trim() && /[-•*\d]/.test(l.charAt(0)));
+    for (const line of lines.slice(0, 20)) {
+      const clean = line.replace(/^[-•*\d\.]+\s*/, "").trim();
+      if (clean.length > 1) {
+        const ref = db.ref(`users/${userId}/boxes/${box.id}/items`).push();
+        await ref.set({ name: clean, qty: 1, addedAt: Date.now() });
+      }
+    }
+    toast("Gjenstander importert!", "success");
+    setTab("items");
+  };
+
+  // AI: Sell/Throw advice
+  const handleSellAdvice = async () => {
+    if (items.length === 0) { toast("Legg til gjenstander først", "error"); return; }
+    setSellLoading(true); setSellResult(null);
+    const list = items.map(i => `- ${i.name} (x${i.qty})`).join("\n");
+    try {
+      const raw = await callClaude([{
+        role: "user",
+        content: `Analyser disse gjenstandene fra eske "${box2.name}":\n${list}\n\nGi konkrete anbefalinger i JSON-format:\n{\n  "selg": [{"navn": "...", "pris": "...", "plattform": "..."}],\n  "kast": ["..."],\n  "behold": ["..."],\n  "finn_tittel": "...",\n  "finn_pris": "...",\n  "finn_beskrivelse": "..."\n}\nSvar BARE med JSON, ingen forklaring.`
+      }], "Du er BXO. Svar KUN med valid JSON, ingen markdown-kode-blokker.");
+      const clean = raw.replace(/```json|```/g, "").trim();
+      const parsed = JSON.parse(clean);
+      setSellResult(parsed);
+      toast("Analyse fullført!", "success");
+    } catch (e) {
+      toast("Analyse feilet: " + e.message, "error");
+    }
+    setSellLoading(false);
+  };
+
+  // AI: Pack box (multiple images)
+  const handlePackFiles = async (files) => {
+    const arr = Array.from(files).slice(0, 5);
+    const imgs = await Promise.all(arr.map(async f => {
+      const b64 = await fileToBase64(f);
+      return { b64, mime: f.type, url: URL.createObjectURL(f) };
+    }));
+    setPackImgs(imgs);
+  };
+
+  const handlePackAdvice = async () => {
+    if (packImgs.length === 0) { toast("Last opp bilder av gjenstander", "error"); return; }
+    setPackLoading(true); setPackResult("");
+    try {
+      const content = [
+        ...packImgs.map(img => ({ type: "image", source: { type: "base64", media_type: img.mime, data: img.b64 } })),
+        { type: "text", text: `Analyser disse ${packImgs.length} bildene av gjenstander som skal pakkes i esken "${box2.name}". Gi råd om: 1) Optimal pakkrekkefølge 2) Beskyttelse av skjøre gjenstander 3) Romoptimalisering 4) Hva du trenger av emballasjemateriell. Vær konkret og praktisk.` }
+      ];
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: CLAUDE_MODEL, max_tokens: 1200,
+          system: "Du er BXO, ekspert på pakking og hjemorganisering. Svar på norsk.",
+          messages: [{ role: "user", content }]
+        })
+      });
+      if (!res.ok) throw new Error("API " + res.status);
+      const data = await res.json();
+      setPackResult(data.content.map(b => b.text || "").join("\n"));
+      toast("Pakkeplan klar!", "success");
+    } catch (e) {
+      toast("Feil: " + e.message, "error");
+    }
+    setPackLoading(false);
+  };
+
+  // Share link
+  const handleShare = () => {
+    const url = `${window.location.origin}${window.location.pathname}?share=${userId}_${box.id}`;
+    setShareUrl(url);
+    navigator.clipboard.writeText(url).then(() => toast("Lenke kopiert!", "success")).catch(() => {});
+  };
+
+  const TABS = [
+    { id: "items", label: "Innhold" },
+    { id: "scan",  label: "Skann" },
+    { id: "sell",  label: "Selg/Kast" },
+    { id: "pack",  label: "Pakk" },
+    { id: "share", label: "Del" },
+  ];
+
+  return html`
+    <div>
+      <div class="breadcrumb">
+        <a onClick=${onBack}>Esker</a>
+        <span class="breadcrumb-sep">/</span>
+        <span style="color:var(--text2)">${box2.name}</span>
+      </div>
+      <div class="card mb-4" style="margin-bottom:16px">
+        <div class="flex items-center gap-3">
+          <div style="font-size:2.2rem">${box2.emoji || "📦"}</div>
+          <div style="flex:1">
+            <div class="card-title">${box2.name}</div>
+            <div class="card-sub">${box2.location || "Ingen plassering"} · ${items.length} gjenstander</div>
+          </div>
+          ${box2.category && html`<span class="badge badge-purple">${box2.category}</span>`}
+        </div>
+        ${box2.description && html`<p style="color:var(--text2);font-size:.84rem;margin-top:10px;line-height:1.5">${box2.description}</p>`}
+      </div>
+
+      <!-- Tabs -->
+      <div style="display:flex;gap:4px;overflow-x:auto;margin-bottom:16px;padding-bottom:2px">
+        ${TABS.map(t => html`
+          <button key=${t.id} onClick=${() => setTab(t.id)}
+            class="btn btn-sm"
+            style=${{ background: tab === t.id ? "rgba(124,106,247,.2)" : "var(--bg3)", color: tab === t.id ? "var(--accent2)" : "var(--text2)", border: "1px solid " + (tab === t.id ? "rgba(124,106,247,.3)" : "var(--border)") }}>
+            ${t.label}
+          </button>`)}
+      </div>
+
+      <!-- ITEMS TAB -->
+      ${tab === "items" && html`
+        <div>
+          <div class="flex gap-2 mb-4" style="margin-bottom:12px">
+            <input class="input" style="flex:1" placeholder="Gjenstand..." value=${newItem}
+              onInput=${e => setNewItem(e.target.value)}
+              onKeyDown=${e => e.key === "Enter" && addItem()} />
+            <input class="input" style="width:64px" type="number" min="1" value=${newQty} onInput=${e => setNewQty(e.target.value)} />
+            <button class="btn btn-primary" onClick=${addItem}><${Icon} name="plus" size=${16}/></button>
+          </div>
+          ${items.length === 0
+            ? html`<div class="empty-state"><div class="empty-state-icon">📋</div><div class="empty-state-title">Ingen gjenstander</div><p class="empty-state-desc">Legg til gjenstander manuelt eller bruk AI-skanning</p></div>`
+            : html`<div class="items-list">
+                ${items.map(item => html`
+                  <div key=${item.id} class="item-row">
+                    <span class="item-name">${item.name}</span>
+                    <span class="item-qty">×${item.qty}</span>
+                    <button class="icon-btn" onClick=${() => removeItem(item.id)} style="color:var(--text3)"><${Icon} name="trash" size=${14}/></button>
+                  </div>`)}
+              </div>`}
+        </div>`}
+
+      <!-- SCAN TAB -->
+      ${tab === "scan" && html`
+        <div>
+          <div class="scan-zone ${scanImg ? '' : ''}" onClick=${() => {}}>
+            <input type="file" accept="image/*" capture="environment" onChange=${e => handleScanFile(e.target.files[0])} />
+            ${scanImg
+              ? html`<img src=${scanImg} style="max-height:200px;border-radius:var(--radius2);margin:0 auto" />`
+              : html`
+                <div class="scan-icon">📸</div>
+                <p style="font-weight:600;margin-bottom:4px">Ta bilde av eska</p>
+                <p class="text-sm text-muted">AI identifiserer gjenstander automatisk</p>`}
+          </div>
+          ${scanLoading && html`<div class="mt-3" style="margin-top:12px"><div class="loading-bar"></div><p class="text-sm text-muted text-center mt-2" style="margin-top:8px">Analyserer bilde...</p></div>`}
+          ${scanResult && html`
+            <div class="mt-3" style="margin-top:12px">
+              <div class="ai-result-box">${scanResult.split("\n").map((l, i) => html`<span key=${i}>${l}<br/></span>`)}</div>
+              <div class="flex gap-2 mt-3" style="margin-top:10px">
+                <button class="btn btn-primary btn-sm" onClick=${importScanItems}>Importer til eske</button>
+                <button class="btn btn-secondary btn-sm" onClick=${() => { setScanResult(""); setScanImg(null); }}>Nullstill</button>
+              </div>
+            </div>`}
+        </div>`}
+
+      <!-- SELL/THROW TAB -->
+      ${tab === "sell" && html`
+        <div>
+          <p class="text-sm text-muted mb-3" style="margin-bottom:12px">AI analyserer innholdet og foreslår hva du bør selge, kaste eller beholde.</p>
+          <button class="btn btn-primary btn-full" onClick=${handleSellAdvice} disabled=${sellLoading || items.length === 0}>
+            ${sellLoading ? html`<span>Analyserer...</span>` : html`<${Icon} name="sparkle" size=${16}/><span>Analyser innhold</span>`}
+          </button>
+          ${sellLoading && html`<div class="mt-3" style="margin-top:12px"><div class="loading-bar"></div></div>`}
+          ${sellResult && html`
+            <div style="margin-top:16px;display:flex;flex-direction:column;gap:12px">
+              ${sellResult.selg && sellResult.selg.length > 0 && html`
+                <div class="card">
+                  <div class="flex items-center gap-2 mb-3" style="margin-bottom:10px">
+                    <span style="color:var(--green)">💰</span>
+                    <span class="card-title" style="font-size:.9rem">Selg disse</span>
+                  </div>
+                  ${sellResult.selg.map((s, i) => html`
+                    <div key=${i} class="flex items-center gap-2" style="padding:6px 0;border-bottom:1px solid var(--border);font-size:.85rem">
+                      <span style="flex:1">${s.navn}</span>
+                      <span class="badge badge-green">${s.pris}</span>
+                      <span class="badge badge-gray">${s.plattform}</span>
+                    </div>`)}
+                </div>`}
+
+              ${sellResult.finn_tittel && html`
+                <div class="finn-draft">
+                  <div class="finn-header">🏷️ Finn.no utkast</div>
+                  <div class="finn-body">
+                    <div class="finn-title">${sellResult.finn_tittel}</div>
+                    <div class="finn-price">${sellResult.finn_pris}</div>
+                    <div class="finn-desc mt-2" style="margin-top:8px">${sellResult.finn_beskrivelse}</div>
+                    <div class="platform-grid mt-3" style="margin-top:12px">
+                      ${[
+                        { name: "Finn.no", icon: "🇳🇴", url: "https://www.finn.no/recommerce/forsalePrivate/ad" },
+                        { name: "eBay", icon: "🌍", url: "https://www.ebay.com/sell" },
+                        { name: "Facebook", icon: "📘", url: "https://www.facebook.com/marketplace" },
+                        { name: "Tise", icon: "👗", url: "https://www.tise.com" },
+                      ].map(p => html`
+                        <div key=${p.name} class="platform-card" onClick=${() => window.open(p.url, "_blank")}>
+                          <div class="platform-icon">${p.icon}</div>
+                          <div class="platform-name">${p.name}</div>
+                        </div>`)}
+                    </div>
+                  </div>
+                </div>`}
+
+              ${sellResult.kast && sellResult.kast.length > 0 && html`
+                <div class="card">
+                  <div class="flex items-center gap-2 mb-2" style="margin-bottom:8px">
+                    <span>🗑️</span><span class="card-title" style="font-size:.9rem">Kast disse</span>
+                  </div>
+                  ${sellResult.kast.map((k, i) => html`
+                    <div key=${i} class="text-sm text-muted" style="padding:3px 0">• ${k}</div>`)}
+                </div>`}
+
+              ${sellResult.behold && sellResult.behold.length > 0 && html`
+                <div class="card">
+                  <div class="flex items-center gap-2 mb-2" style="margin-bottom:8px">
+                    <span>✅</span><span class="card-title" style="font-size:.9rem">Behold disse</span>
+                  </div>
+                  ${sellResult.behold.map((b, i) => html`
+                    <div key=${i} class="text-sm text-muted" style="padding:3px 0">• ${b}</div>`)}
+                </div>`}
+            </div>`}
+        </div>`}
+
+      <!-- PACK TAB -->
+      ${tab === "pack" && html`
+        <div>
+          <p class="text-sm text-muted mb-3" style="margin-bottom:12px">Last opp opptil 5 bilder av gjenstander. AI gir deg en optimalisert pakkeplan.</p>
+          <div class="scan-zone" style="margin-bottom:12px">
+            <input type="file" accept="image/*" multiple onChange=${e => handlePackFiles(e.target.files)} />
+            <div class="scan-icon">📷</div>
+            <p style="font-weight:600;margin-bottom:4px">Last opp bilder (maks 5)</p>
+            <p class="text-sm text-muted">Bilder av gjenstander som skal pakkes</p>
+          </div>
+          ${packImgs.length > 0 && html`
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+              ${packImgs.map((img, i) => html`
+                <img key=${i} src=${img.url} style="width:72px;height:72px;object-fit:cover;border-radius:var(--radius2);border:1px solid var(--border)" />`)}
+            </div>`}
+          <button class="btn btn-primary btn-full" onClick=${handlePackAdvice} disabled=${packLoading || packImgs.length === 0}>
+            ${packLoading ? "Lager pakkeplan..." : html`<${Icon} name="pack" size=${16}/> Lag pakkeplan`}
+          </button>
+          ${packLoading && html`<div class="mt-3" style="margin-top:12px"><div class="loading-bar"></div></div>`}
+          ${packResult && html`
+            <div class="ai-result-box mt-3" style="margin-top:14px">
+              ${packResult.split("\n").map((l, i) => html`<span key=${i}>${l}<br/></span>`)}
+            </div>`}
+        </div>`}
+
+      <!-- SHARE TAB -->
+      ${tab === "share" && html`
+        <div>
+          <p class="text-sm text-muted mb-3" style="margin-bottom:12px">Del en lenke til eskeoversikten med familie eller kollegaer. Lenken gir skrivebeskyttet tilgang.</p>
+          <button class="btn btn-primary btn-full" onClick=${handleShare}>
+            <${Icon} name="share" size=${16}/> Generer delelenke
+          </button>
+          ${shareUrl && html`
+            <div class="mt-3" style="margin-top:14px">
+              <div class="share-link-box">${shareUrl}</div>
+              <div class="flex gap-2 mt-2" style="margin-top:8px">
+                <button class="btn btn-secondary btn-sm" onClick=${() => { navigator.clipboard.writeText(shareUrl); toast("Kopiert!", "success"); }}>
+                  <${Icon} name="copy" size=${14}/> Kopier
+                </button>
+                <button class="btn btn-secondary btn-sm" onClick=${() => {
+                  if (navigator.share) navigator.share({ title: "BXO: " + box2.name, url: shareUrl });
+                }}>
+                  <${Icon} name="share" size=${14}/> Del
+                </button>
+              </div>
+            </div>`}
+        </div>`}
+    </div>`;
+}
+// ─────────────────────────────────────────────────────────────── BoxDetail ──
+
+// ─── BOXES SCREEN ─────────────────────────────────────────────────────────────
+const BOX_EMOJIS = ["📦","🗃️","📫","🧺","🎒","🧳","🗄️","📬"];
+const BOX_CATEGORIES = ["Generelt","Klær","Elektronikk","Bøker","Kjøkken","Sport","Verktøy","Leker","Dokumenter","Annet"];
+
+function BoxesScreen({ userId, toast }) {
+  const [boxes, setBoxes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedBox, setSelectedBox] = useState(null);
+  const [showAdd, setShowAdd] = useState(false);
+
+  // Add form
+  const [newName, setNewName] = useState("");
+  const [newLoc, setNewLoc] = useState("");
+  const [newCat, setNewCat] = useState("Generelt");
+  const [newDesc, setNewDesc] = useState("");
+  const [newEmoji, setNewEmoji] = useState("📦");
+  const [addLoading, setAddLoading] = useState(false);
+  const [editBox, setEditBox] = useState(null);
+  const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    const ref = db.ref(`users/${userId}/boxes`);
+    const unsub = ref.on("value", snap => {
+      const val = snap.val();
+      setBoxes(val ? Object.entries(val).map(([k, v]) => ({ ...v, id: k })).sort((a, b) => b.createdAt - a.createdAt) : []);
+      setLoading(false);
+    });
+    return () => ref.off("value", unsub);
+  }, [userId]);
+
+  const saveBox = async () => {
+    if (!newName.trim()) { toast("Skriv inn et navn", "error"); return; }
+    setAddLoading(true);
+    const data = { name: newName.trim(), location: newLoc.trim(), category: newCat, description: newDesc.trim(), emoji: newEmoji, createdAt: Date.now(), updatedAt: Date.now() };
+    try {
+      if (editBox) {
+        await db.ref(`users/${userId}/boxes/${editBox.id}`).update(data);
+        toast("Eske oppdatert!", "success");
+        setEditBox(null);
+      } else {
+        await db.ref(`users/${userId}/boxes`).push(data);
+        toast("Eske opprettet!", "success");
+      }
+      setNewName(""); setNewLoc(""); setNewCat("Generelt"); setNewDesc(""); setNewEmoji("📦");
+      setShowAdd(false);
+    } catch (e) {
+      toast("Feil: " + e.message, "error");
+    }
+    setAddLoading(false);
+  };
+
+  const openEdit = (box) => {
+    setEditBox(box);
+    setNewName(box.name); setNewLoc(box.location || ""); setNewCat(box.category || "Generelt");
+    setNewDesc(box.description || ""); setNewEmoji(box.emoji || "📦");
+    setShowAdd(true);
+  };
+
+  const deleteBox = async (id) => {
+    if (!confirm("Slette denne esken og alt innholdet?")) return;
+    await db.ref(`users/${userId}/boxes/${id}`).remove();
+    toast("Eske slettet", "success");
+  };
+
+  if (selectedBox) {
+    return html`<${BoxDetail} box=${selectedBox} userId=${userId} onBack=${() => setSelectedBox(null)} toast=${toast}/>`;
+  }
+
+  const filtered = boxes.filter(b => b.name.toLowerCase().includes(search.toLowerCase()) || (b.location || "").toLowerCase().includes(search.toLowerCase()));
+
+  return html`
+    <div>
+      <div class="section-header">
+        <h1 class="section-title">Eskeoversikt</h1>
+        <button class="btn btn-primary btn-sm" onClick=${() => { setEditBox(null); setNewName(""); setNewLoc(""); setNewCat("Generelt"); setNewDesc(""); setNewEmoji("📦"); setShowAdd(true); }}>
+          <${Icon} name="plus" size=${15}/> Ny eske
+        </button>
+      </div>
+      <input class="input mb-4" style="margin-bottom:14px" placeholder="Søk esker..." value=${search} onInput=${e => setSearch(e.target.value)} />
+      ${loading
+        ? html`<div class="text-center text-muted" style="padding:40px">Laster...</div>`
+        : filtered.length === 0
+          ? html`<div class="empty-state">
+              <div class="empty-state-icon">📦</div>
+              <div class="empty-state-title">${search ? "Ingen treff" : "Ingen esker ennå"}</div>
+              <p class="empty-state-desc">${search ? "Prøv et annet søk" : "Opprett din første eske for å komme i gang"}</p>
+            </div>`
+          : html`<div class="box-grid">
+              ${filtered.map(box => html`
+                <div key=${box.id} class="box-card" onClick=${() => setSelectedBox(box)}>
+                  <div class="box-thumb">${box.emoji || "📦"}</div>
+                  <div class="box-info">
+                    <div class="box-name">${box.name}</div>
+                    <div class="box-meta">
+                      ${box.location && html`<span>📍 ${box.location}</span>`}
+                      ${box.category && html`<span class="badge badge-gray" style="font-size:.68rem">${box.category}</span>`}
+                    </div>
+                  </div>
+                  <div class="box-actions" onClick=${e => e.stopPropagation()}>
+                    <button class="icon-btn" onClick=${() => openEdit(box)} title="Rediger"><${Icon} name="edit" size=${15}/></button>
+                    <button class="icon-btn" style="color:var(--text3)" onClick=${() => deleteBox(box.id)} title="Slett"><${Icon} name="trash" size=${15}/></button>
+                  </div>
+                </div>`)}
+            </div>`}
+
+      ${showAdd && html`
+        <${Modal} title=${editBox ? "Rediger eske" : "Ny eske"} onClose=${() => setShowAdd(false)}>
+          <div class="field">
+            <label class="label">EMOJI</label>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              ${BOX_EMOJIS.map(e => html`
+                <button key=${e} onClick=${() => setNewEmoji(e)}
+                  style=${{ fontSize: "1.5rem", padding: "6px", borderRadius: "8px", background: newEmoji === e ? "rgba(124,106,247,.2)" : "var(--bg3)", border: "1px solid " + (newEmoji === e ? "var(--accent)" : "var(--border)"), cursor: "pointer" }}>
+                  ${e}
+                </button>`)}
+            </div>
+          </div>
+          <div class="field">
+            <label class="label">NAVN *</label>
+            <input class="input" placeholder="F.eks. Kjøkken esker" value=${newName} onInput=${e => setNewName(e.target.value)} />
+          </div>
+          <div class="field">
+            <label class="label">PLASSERING</label>
+            <input class="input" placeholder="F.eks. Kjeller, Rom 2..." value=${newLoc} onInput=${e => setNewLoc(e.target.value)} />
+          </div>
+          <div class="field">
+            <label class="label">KATEGORI</label>
+            <select class="select" value=${newCat} onChange=${e => setNewCat(e.target.value)}>
+              ${BOX_CATEGORIES.map(c => html`<option key=${c} value=${c}>${c}</option>`)}
+            </select>
+          </div>
+          <div class="field">
+            <label class="label">BESKRIVELSE</label>
+            <textarea class="textarea" placeholder="Valgfri beskrivelse..." value=${newDesc} onInput=${e => setNewDesc(e.target.value)}></textarea>
+          </div>
+          <div class="flex gap-2">
+            <button class="btn btn-secondary" style="flex:1" onClick=${() => setShowAdd(false)}>Avbryt</button>
+            <button class="btn btn-primary" style="flex:1" onClick=${saveBox} disabled=${addLoading}>
+              ${addLoading ? "Lagrer..." : (editBox ? "Oppdater" : "Opprett")}
+            </button>
+          </div>
+        </${Modal}>`}
+    </div>`;
+}
+// ─────────────────────────────────────────────────────────────── BoxesScreen ──
+
+// ─── CHAT SCREEN ──────────────────────────────────────────────────────────────
+function ChatScreen({ userId, toast }) {
+  const [messages, setMessages] = useState([
+    { id: uid(), role: "ai", text: "Hei! Jeg er BXO-assistenten din. Jeg kan hjelpe deg med å organisere hjemmet, gi råd om hva du bør selge eller kaste, lage pakkelister og mye mer. Hva kan jeg hjelpe deg med?" }
+  ]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const endRef = useRef(null);
+
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const send = async () => {
+    const text = input.trim();
+    if (!text || loading) return;
+    setInput("");
+    const userMsg = { id: uid(), role: "user", text };
+    setMessages(m => [...m, userMsg]);
+    setLoading(true);
+    try {
+      const history = [...messages.filter(m => m.role !== "ai" || messages.indexOf(m) > 0), userMsg];
+      const apiMessages = history.map(m => ({ role: m.role === "ai" ? "assistant" : "user", content: m.text }));
+      const response = await callClaude(apiMessages, "Du er BXO, en AI-assistent for hjemorganisering. Du hjelper med å organisere hjemmet, gi råd om ting å selge/kaste, lage pakkelister og generell organisering. Svar på norsk, vær vennlig og konkret. Hold svarene kortfattet men nyttige.");
+      setMessages(m => [...m, { id: uid(), role: "ai", text: response }]);
+    } catch (e) {
+      setMessages(m => [...m, { id: uid(), role: "ai", text: "Beklager, noe gikk galt. Prøv igjen. (" + e.message + ")" }]);
+    }
+    setLoading(false);
+  };
+
+  const clearChat = () => {
+    setMessages([{ id: uid(), role: "ai", text: "Chat tømt! Hva kan jeg hjelpe deg med?" }]);
+  };
+
+  return html`
+    <div>
+      <div class="section-header">
+        <h1 class="section-title">AI-assistent</h1>
+        <button class="btn btn-ghost btn-sm" onClick=${clearChat}>Tøm chat</button>
+      </div>
+      <div class="chat-wrap">
+        <div class="chat-messages">
+          ${messages.map(msg => html`
+            <div key=${msg.id} class=${"msg " + msg.role}>
+              <div class="msg-avatar">${msg.role === "ai" ? "AI" : "DU"}</div>
+              <div class="msg-bubble">${msg.text.split("\n").map((l, i) => html`<span key=${i}>${l}${i < msg.text.split("\n").length - 1 ? html`<br/>` : ""}</span>`)}</div>
+            </div>`)}
+          ${loading && html`
+            <div class="msg ai">
+              <div class="msg-avatar">AI</div>
+              <div class="msg-bubble" style="padding:12px 14px">
+                <div class="ai-typing"><span></span><span></span><span></span></div>
+              </div>
+            </div>`}
+          <div ref=${endRef}></div>
+        </div>
+        <div class="chat-input-row">
+          <textarea class="input chat-input" style="min-height:44px;max-height:120px;resize:none;padding:10px 14px;line-height:1.4"
+            placeholder="Skriv en melding..." value=${input}
+            onInput=${e => { setInput(e.target.value); e.target.style.height = "44px"; e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px"; }}
+            onKeyDown=${e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
+          ></textarea>
+          <button class="btn btn-primary" style="height:44px;width:44px;padding:0;flex-shrink:0" onClick=${send} disabled=${loading || !input.trim()}>
+            <${Icon} name="send" size=${17}/>
+          </button>
+        </div>
+      </div>
+    </div>`;
+}
+// ─────────────────────────────────────────────────────────────── ChatScreen ──
+
+// ─── LABEL SCREEN ─────────────────────────────────────────────────────────────
+function LabelScreen({ userId, toast }) {
+  const [boxes, setBoxes] = useState([]);
+  const [selectedBoxId, setSelectedBoxId] = useState("");
+  const [labelStyle, setLabelStyle] = useState("standard"); // standard | qr | minimal
+  const [darkLabel, setDarkLabel] = useState(false);
+  const [customText, setCustomText] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiSetup, setAiSetup] = useState("");
+  const [printerQuery, setPrinterQuery] = useState("");
+
+  useEffect(() => {
+    const ref = db.ref(`users/${userId}/boxes`);
+    ref.once("value", snap => {
+      const val = snap.val();
+      setBoxes(val ? Object.entries(val).map(([k, v]) => ({ ...v, id: k })) : []);
+    });
+  }, [userId]);
+
+  const selectedBox = boxes.find(b => b.id === selectedBoxId);
+
+  const handlePrint = () => {
+    window.print();
+    toast("Sender til printer...", "success");
+  };
+
+  const handleAiPrinterSetup = async () => {
+    if (!printerQuery.trim()) { toast("Skriv inn printermodell/problem", "error"); return; }
+    setAiLoading(true); setAiSetup("");
+    try {
+      const result = await callClaude([{
+        role: "user",
+        content: `Hjelp meg med å sette opp etikett-printing for: "${printerQuery}". Gi konkrete trinn for: 1) Driverinstallasjon 2) Papirstørrelse-innstillinger for eskemerking (A4 eller etikettark) 3) Anbefalte innstillinger for tydelig utskrift. Vær konkret og kortfattet.`
+      }], "Du er en teknisk support-assistent for printer-oppsett. Svar på norsk.");
+      setAiSetup(result);
+      toast("Printeroppsett klar!", "success");
+    } catch (e) {
+      toast("Feil: " + e.message, "error");
+    }
+    setAiLoading(false);
+  };
+
+  return html`
+    <div>
+      <div class="section-header">
+        <h1 class="section-title">Etikettprinter</h1>
+      </div>
+
+      <div class="flex flex-col gap-4">
+        <div class="field">
+          <label class="label">VELG ESKE</label>
+          <select class="select" value=${selectedBoxId} onChange=${e => setSelectedBoxId(e.target.value)}>
+            <option value="">Velg eske...</option>
+            ${boxes.map(b => html`<option key=${b.id} value=${b.id}>${b.emoji || "📦"} ${b.name}</option>`)}
+          </select>
+        </div>
+
+        <div class="field">
+          <label class="label">ETIKETTTYPE</label>
+          <div style="display:flex;gap:8px">
+            ${[["standard","Standard"],["minimal","Minimal"],["detailed","Detaljert"]].map(([val, lbl]) => html`
+              <button key=${val} onClick=${() => setLabelStyle(val)}
+                class=${"btn btn-sm " + (labelStyle === val ? "btn-primary" : "btn-secondary")}>
+                ${lbl}
+              </button>`)}
+          </div>
+        </div>
+
+        <div class="flex items-center gap-3" style="justify-content:space-between;padding:10px 14px;background:var(--bg3);border-radius:var(--radius2);border:1px solid var(--border)">
+          <span class="text-sm">Mørk etikett</span>
+          <label class="toggle">
+            <input type="checkbox" checked=${darkLabel} onChange=${e => setDarkLabel(e.target.checked)} />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="field">
+          <label class="label">TILLEGGSTEKST</label>
+          <input class="input" placeholder="F.eks. 'SKJØRT – FORSIKTIG'" value=${customText} onInput=${e => setCustomText(e.target.value)} />
+        </div>
+
+        <!-- Label Preview -->
+        ${selectedBox && html`
+          <div>
+            <div class="label mb-2" style="font-size:.75rem;color:var(--text2);font-family:var(--font-mono);letter-spacing:.04em;margin-bottom:8px">FORHÅNDSVISNING</div>
+            <div class=${"label-preview print-area " + (darkLabel ? "dark-lbl" : "")}>
+              <div style="display:flex;justify-content:space-between;align-items:flex-start">
+                <div>
+                  <div style="font-size:1.8rem">${selectedBox.emoji || "📦"}</div>
+                  <div style="font-size:1rem;font-weight:700;font-family:'Syne',sans-serif;margin-top:4px">${selectedBox.name}</div>
+                  ${selectedBox.location && html`<div style="font-size:.75rem;opacity:.7;margin-top:2px">📍 ${selectedBox.location}</div>`}
+                  ${selectedBox.category && labelStyle !== "minimal" && html`<div style="font-size:.7rem;opacity:.6;margin-top:2px">${selectedBox.category}</div>`}
+                  ${customText && html`<div style="font-size:.8rem;font-weight:700;margin-top:6px;border-top:2px solid currentColor;padding-top:4px">${customText}</div>`}
+                </div>
+                ${labelStyle === "detailed" && html`
+                  <div style="text-align:right;font-size:.65rem;opacity:.6">
+                    <div>BXO</div>
+                    <div>${new Date().toLocaleDateString("nb-NO")}</div>
+                  </div>`}
+              </div>
+              ${labelStyle !== "minimal" && html`
+                <div style="margin-top:10px;padding-top:8px;border-top:1px dashed currentColor;font-size:.65rem;opacity:.5;font-family:'DM Mono',monospace">
+                  ${selectedBox.id}
+                </div>`}
+            </div>
+          </div>
+          <div class="flex gap-2">
+            <button class="btn btn-primary" style="flex:1" onClick=${handlePrint}>
+              <${Icon} name="printer" size=${16}/> Skriv ut
+            </button>
+            <button class="btn btn-secondary btn-sm" onClick=${() => { const txt = `${selectedBox.emoji || ""} ${selectedBox.name}\n${selectedBox.location || ""}\n${customText || ""}`; navigator.clipboard.writeText(txt); toast("Kopiert!", "success"); }}>
+              <${Icon} name="copy" size=${15}/>
+            </button>
+          </div>`}
+
+        <!-- AI Printer Setup -->
+        <hr class="divider"/>
+        <div>
+          <div class="card-title mb-2" style="margin-bottom:10px;font-size:.9rem">
+            <${Icon} name="sparkle" size=${14} style="display:inline;margin-right:6px;color:var(--accent2)"/>
+            AI Printeroppsett
+          </div>
+          <div class="flex gap-2">
+            <input class="input" style="flex:1" placeholder="Printermodell eller problem..." value=${printerQuery} onInput=${e => setPrinterQuery(e.target.value)}
+              onKeyDown=${e => e.key === "Enter" && handleAiPrinterSetup()} />
+            <button class="btn btn-secondary btn-sm" onClick=${handleAiPrinterSetup} disabled=${aiLoading}>
+              ${aiLoading ? "..." : "Hjelp"}
+            </button>
+          </div>
+          ${aiLoading && html`<div class="loading-bar mt-2" style="margin-top:8px"></div>`}
+          ${aiSetup && html`
+            <div class="ai-result-box mt-3" style="margin-top:12px">
+              ${aiSetup.split("\n").map((l, i) => html`<span key=${i}>${l}<br/></span>`)}
+            </div>`}
+        </div>
+      </div>
+    </div>`;
+}
+// ────────────────────────────────────────────────────────────── LabelScreen ──
+
+// ─── PROFILE SCREEN ───────────────────────────────────────────────────────────
+function ProfileScreen({ user, userId, toast }) {
+  const [boxes, setBoxes] = useState([]);
+  const [displayName, setDisplayName] = useState(user.displayName || "");
+  const [saving, setSaving] = useState(false);
+  const [darkMode, setDarkMode] = useState(true);
+
+  useEffect(() => {
+    const ref = db.ref(`users/${userId}/boxes`);
+    ref.once("value", snap => {
+      const val = snap.val();
+      setBoxes(val ? Object.values(val) : []);
+    });
+  }, [userId]);
+
+  const totalItems = boxes.reduce((sum, b) => {
+    return sum + (b.items ? Object.keys(b.items).length : 0);
+  }, 0);
+
+  const saveName = async () => {
+    if (!displayName.trim()) return;
+    setSaving(true);
+    try {
+      await user.updateProfile({ displayName: displayName.trim() });
+      await db.ref(`users/${userId}/profile`).update({ displayName: displayName.trim(), updatedAt: Date.now() });
+      toast("Navn oppdatert!", "success");
+    } catch (e) {
+      toast("Feil: " + e.message, "error");
+    }
+    setSaving(false);
+  };
+
+  const handleDarkToggle = (checked) => {
+    setDarkMode(checked);
+    document.documentElement.setAttribute("data-theme", checked ? "dark" : "light");
+    if (!checked) {
+      document.documentElement.style.setProperty("--bg", "#f4f4f8");
+      document.documentElement.style.setProperty("--bg2", "#ffffff");
+      document.documentElement.style.setProperty("--bg3", "#ebebf2");
+      document.documentElement.style.setProperty("--text", "#111118");
+      document.documentElement.style.setProperty("--text2", "#555568");
+      document.documentElement.style.setProperty("--text3", "#9999bb");
+      document.documentElement.style.setProperty("--border", "#ddddee");
+      document.documentElement.style.setProperty("--border2", "#ccccdd");
+    } else {
+      ["--bg","--bg2","--bg3","--text","--text2","--text3","--border","--border2"].forEach(v => document.documentElement.style.removeProperty(v));
+    }
+  };
+
+  const initials = (user.displayName || user.email || "?").charAt(0).toUpperCase();
+
+  return html`
+    <div>
+      <div class="section-header">
+        <h1 class="section-title">Profil</h1>
+        <button class="btn btn-ghost btn-sm" onClick=${() => auth.signOut()}>
+          <${Icon} name="logout" size=${15}/> Logg ut
+        </button>
+      </div>
+
+      <div class="profile-avatar-wrap">
+        <div class="profile-avatar">
+          ${user.photoURL ? html`<img src=${user.photoURL} alt="avatar"/>` : initials}
+        </div>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-val">${boxes.length}</div>
+          <div class="stat-lbl">ESKER</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val">${totalItems}</div>
+          <div class="stat-lbl">GJENSTANDER</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val">${new Date().getFullYear() - 2024 + 1}</div>
+          <div class="stat-lbl">ÅR</div>
+        </div>
+      </div>
+
+      <div class="card flex flex-col gap-4">
+        <div class="field">
+          <label class="label">VISNINGSNAVN</label>
+          <div class="flex gap-2">
+            <input class="input" style="flex:1" value=${displayName} onInput=${e => setDisplayName(e.target.value)} placeholder="Ditt navn" />
+            <button class="btn btn-secondary btn-sm" onClick=${saveName} disabled=${saving}>Lagre</button>
+          </div>
+        </div>
+        <div class="field">
+          <label class="label">E-POST</label>
+          <input class="input" value=${user.email || "Google-bruker"} disabled style="opacity:.6" />
+        </div>
+        <div class="flex items-center justify-between">
+          <div>
+            <div style="font-size:.9rem;font-weight:500">Mørk modus</div>
+            <div class="text-xs text-muted">Standard: mørkt tema</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" checked=${darkMode} onChange=${e => handleDarkToggle(e.target.checked)} />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <hr class="divider" style="margin:0"/>
+        <div>
+          <div style="font-size:.8rem;color:var(--text3);font-family:var(--font-mono);margin-bottom:8px">OM BXO</div>
+          <div class="text-sm text-muted" style="line-height:1.6">
+            BXO er en AI-drevet hjemorganiseringsapp utviklet for å gjøre det enkelt å holde oversikt over alt du eier.
+          </div>
+          <div class="text-xs text-muted mt-2" style="margin-top:10px;font-family:var(--font-mono)">
+            Versjon 1.0.0 · Powered by Claude AI
+          </div>
+        </div>
+        <button class="btn btn-danger btn-sm" style="align-self:flex-start" onClick=${() => { if (confirm("Er du sikker på at du vil slette kontoen din? Dette kan ikke angres.")) toast("Kontosletting er ikke tilgjengelig i demo", "error"); }}>
+          Slett konto
+        </button>
+      </div>
+      <p class="footer-copy">© 2025 BXO · Kenneth Horgen Hansen · Powered by Claude AI</p>
+    </div>`;
+}
+// ──────────────────────────────────────────────────────────── ProfileScreen ──
+
+// ─── NAVIGATION ICONS ────────────────────────────────────────────────────────
+const NAV_ITEMS = [
+  { id: "boxes",  label: "Esker",    icon: "boxes" },
+  { id: "chat",   label: "Assistent",icon: "chat" },
+  { id: "label",  label: "Etikett",  icon: "label" },
+  { id: "profile",label: "Profil",   icon: "user" },
+];
+
+// ─── MAIN APP ──────────────────────────────────────────────────────────────────
+function App() {
+  const [user, setUser] = useState(undefined); // undefined = loading, null = not authed
+  const [screen, setScreen] = useState("boxes");
+  const [hasOnboarded, setHasOnboarded] = useState(!!localStorage.getItem("bxo_onboarded"));
+  const toast = useToast();
+
+  useEffect(() => {
+    const unsub = auth.onAuthStateChanged(u => setUser(u));
+    return () => unsub();
+  }, []);
+
+  // Check for share link
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const share = params.get("share");
+    if (share) {
+      // Could implement read-only shared view — for now just notify
+      toast("Delelenke mottatt. Logg inn for å se esken.", "info");
+    }
+  }, []);
+
+  if (user === undefined) {
+    return html`
+      <div style="min-height:100dvh;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px">
+        <div class="onboard-logo" style="font-family:var(--font-head);font-size:2.5rem;font-weight:800;color:var(--accent2)">BXO</div>
+        <div class="loading-bar" style="width:120px"></div>
+      </div>`;
+  }
+
+  if (!hasOnboarded) {
+    return html`<${Onboarding} onDone=${() => { localStorage.setItem("bxo_onboarded", "1"); setHasOnboarded(true); }}/>`;
+  }
+
+  if (!user) {
+    return html`<${AuthScreen} onAuth=${() => {}}/>`;
+  }
+
+  const userId = user.uid;
+
+  const screens = {
+    boxes:   html`<${BoxesScreen}   userId=${userId} toast=${toast}/>`,
+    chat:    html`<${ChatScreen}    userId=${userId} toast=${toast}/>`,
+    label:   html`<${LabelScreen}   userId=${userId} toast=${toast}/>`,
+    profile: html`<${ProfileScreen} user=${user} userId=${userId} toast=${toast}/>`,
+  };
+
+  return html`
+    <div id="root-inner">
+      <!-- Topbar -->
+      <div class="topbar">
+        <div class="topbar-logo">
+          BXO
+          <span style="font-family:var(--font-mono);font-size:.65rem;color:var(--text3);font-weight:400;background:var(--bg3);padding:2px 6px;border-radius:4px;border:1px solid var(--border)">AI</span>
+        </div>
+        <div class="topbar-actions">
+          <span class="badge badge-purple" style="font-size:.65rem">
+            <${Icon} name="sparkle" size=${10}/>
+            Claude AI
+          </span>
+        </div>
+      </div>
+
+      <!-- Main content -->
+      <main class="main">
+        ${screens[screen]}
+      </main>
+
+      <!-- Bottom nav -->
+      <nav class="bottom-nav">
+        ${NAV_ITEMS.map(item => html`
+          <button key=${item.id} class=${"bottom-nav-item" + (screen === item.id ? " active" : "")} onClick=${() => setScreen(item.id)}>
+            <${Icon} name=${item.icon} size=${22}/>
+            <span>${item.label}</span>
+            <div class="nav-dot"></div>
+          </button>`)}
+      </nav>
+    </div>`;
+}
+// ──────────────────────────────────────────────────────────────────────── App ──
+
+// ─── BOOT ─────────────────────────────────────────────────────────────────────
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(html`
+  <${ToastProvider}>
+    <${App}/>
+  </${ToastProvider}>`
+);
+</script>
+</body>
+</html>
